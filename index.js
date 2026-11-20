@@ -1,7 +1,40 @@
 const fs = require('node:fs')
 const http = require('node:http')
+const crypto = require('node:crypto')
+const { Database } = require('node:sqlite')
 
+const db = new Database('app.db')
+db.exec(`
+    CREATE TABLE IF NOT EXISTS users(
+        user_id TEXT PRIMARY KEY,
+        username TEXT,
+        email TEXT UNIQUE,
+        passhash TEXT
+    ) STRICT
+`)
+
+const session = {}
 const server = http.createServer()
+
+const parseCookies = (request) => {
+    const list = {}
+    const cookieHeader = request.headers?.cookie
+    if (!cookieHeader) return list
+
+    cookieHeader.split('').forEach(function(cookie) {
+        let [ name, ...rest] = cookie.split('=')
+        name = name?.trim()
+
+        if (!name) return
+        const value = rest.join('=').trim()
+
+        if (!value) return
+        list[name] = decodeURIComponent(value)
+    })
+
+    return list
+}
+
 
 const hello = (_, res) => {
     res.writeHead(200, { 'Content-Type': 'application/json' })
@@ -10,10 +43,18 @@ const hello = (_, res) => {
     }))
 }
 
+const errorReturner = (res, code, msg) => {
+    if (msg === undefined) msg = http.STATUS_CODES[code]
+    res.writeHead(code, { 'Content-Type': 'application/json' })
+    res.end(JSON.stringify({
+        error: msg,
+    }))
+}
+
 const signupPage = (_, res) => {
-    const file = fs.createReadStream('./signup.html');
-    res.writeHead(200, { 'Content-Type': 'text/html' });
-    file.pipe(res);
+    const file = fs.createReadStream('./signup.html')
+    res.writeHead(200, { 'Content-Type': 'text/html' })
+    file.pipe(res)
 }
 
 const signup = (req, res) => {
@@ -23,18 +64,59 @@ const signup = (req, res) => {
     })
 
     req.on('end', () => {
-        let formData = JSON.parse(data)
-        console.log(formData)
+        const cookies = parseCookies(req)
 
-        res.writeHead(200, { 'Content-Type': 'application/json' })
-        res.end(JSON.stringify({ data: 'Hello World!' }))
+        if (Object.hasOwn(session, cookies.sessionId)) {
+            errorReturner(res, 400, 'You are already logged in')
+            return
+        }
+
+        let formData = JSON.parse(data)
+
+        const query = db.prepare(`
+            SELECT * FROM users
+            WHERE email = :email
+        `).all({ ':email': formData.email })
+
+        if (Object.keys(query).length !== 0) {
+            errorReturner(res, 400, 'This email is already used')
+            return
+        }
+
+        const hash = crypto.createHash('sha256')
+        hash.update(formData.password)
+        const passhash = hash.digest('hex')
+
+        let userId = crypto.randomUUID().toString()
+        const insert = db.prepare(`
+            INSERT INTO users (user_id, username, email, passhash)
+            VALUES (:userId, :username, :email, :passhash)
+        `)
+
+        insert.run({
+            ':userId': userId,
+            ':username': formData.username,
+            ':email': formData.email,
+            ':passhash': passhash
+        })
+
+        let sessionId = crypto.randomUUID().toString()
+        session[sessionId] = {
+            userId: userId
+        }
+
+        res.writeHead(201, {
+            'Content-Type': 'application/json',
+            'Set-Cookie': `sessionId=${sessionId}`,
+        })
+        res.end(JSON.stringify({ ok: 'New user created' }))
     })
 }
 
 const loginPage = (_, res) => {
-    const file = fs.createReadStream('./login.html');
-    res.writeHead(200, { 'Content-Type': 'text/html' });
-    file.pipe(res);
+    const file = fs.createReadStream('./login.html')
+    res.writeHead(200, { 'Content-Type': 'text/html' })
+    file.pipe(res)
 }
 
 const login = (req, res) => {
@@ -72,13 +154,6 @@ const routes = {
     }
 }
 
-const errorReturner = (res, code, msg) => {
-    if (msg === undefined) msg = http.STATUS_CODES[code]
-    res.writeHead(code, { 'Content-Type': 'application/json' })
-    res.end(JSON.stringify({
-        error: msg,
-    }))
-}
 
 server.on('request', (req, res) => {
     let url = new URL(`http://${process.env.HOST ?? 'localhost'}${req.url}`)

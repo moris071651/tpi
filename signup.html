@@ -26,9 +26,12 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(Object.fromEntries(formData))
             })
-
+            
             if (res.ok) {
                 location.href = 'http://localhost:8653/dashboard'
+            }
+            else {
+                alert((await res.json()).error)
             }
         })
     </script>
