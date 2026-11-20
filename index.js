@@ -35,7 +35,6 @@ const parseCookies = (request) => {
     return list
 }
 
-
 const hello = (_, res) => {
     res.writeHead(200, { 'Content-Type': 'application/json' })
     res.end(JSON.stringify({
@@ -126,14 +125,47 @@ const login = (req, res) => {
     })
 
     req.on('end', () => {
-        let formData = JSON.parse(data)
-        console.log(formData)
+        const cookies = parseCookies(req)
 
-        res.writeHead(200, { 'Content-Type': 'application/json' })
-        res.end(JSON.stringify({ data: 'Hello World!' }))
+        if (Object.hasOwn(session, cookies.sessionId)) {
+            errorReturner(res, 400, 'You are already logged in')
+            return
+        }
+
+        let formData = JSON.parse(data)
+
+        const hash = crypto.createHash('sha256')
+        hash.update(formData.password)
+        const passhash = hash.digest('hex')
+
+        const query = db.prepare(`
+            SELECT user_id as userId, email, passhash FROM users
+            WHERE email = :email
+        `)
+        const user = query.get({ ':email': formData.email })
+
+        if (!user) {
+            errorReturner(res, 400, 'Wrong email or password')
+            return
+        }
+
+        if (user.passhash !== passhash) {
+            errorReturner(res, 400, 'Wrong email or password')
+            return
+        }
+
+        let sessionId = crypto.randomUUID().toString()
+        session[sessionId] = {
+            userId: user.userId
+        }
+
+        res.writeHead(201, {
+            'Content-Type': 'application/json',
+            'Set-Cookie': `sessionId=${sessionId}`,
+        })
+        res.end(JSON.stringify({ ok: 'New session created' }))
     })
 }
-
 
 
 const routes = {
