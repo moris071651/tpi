@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login</title>
+</head>
+<body>
+    <a href="http://localhost:8653/signup">To signup page</a>
+    <br>
+    <form id="loginform">
+        <input type="email" name="email" placeholder="Email" required>
+        <input type="password" name="password" placeholder="Password" required>
+        <button type="submit">Login</button>
+    </form>
+    <script>
+        document
+            .querySelector('#loginform')
+            .addEventListener('submit', async (e) => {
+            e.preventDefault()
+
+            const formData = new FormData(e.target)
+            const res = await fetch('http://localhost:8653/api/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(Object.fromEntries(formData))
+            })
+
+            if (res.ok) {
+                location.href = 'http://localhost:8653/dashboard'
+            }
+        })
+    </script>
+</body>
+</html>

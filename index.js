@@ -1,6 +1,5 @@
 const fs = require('node:fs')
 const http = require('node:http')
-const querystring = require('node:querystring')
 
 const server = http.createServer()
 
@@ -11,6 +10,12 @@ const hello = (_, res) => {
     }))
 }
 
+const signupPage = (_, res) => {
+    const file = fs.createReadStream('./signup.html');
+    res.writeHead(200, { 'Content-Type': 'text/html' });
+    file.pipe(res);
+}
+
 const signup = (req, res) => {
     let data = ''
     req.on('data', (chunk) => {
@@ -18,9 +23,7 @@ const signup = (req, res) => {
     })
 
     req.on('end', () => {
-        let formData = querystring.parse(data)
-
-
+        let formData = JSON.parse(data)
         console.log(formData)
 
         res.writeHead(200, { 'Content-Type': 'application/json' })
@@ -28,11 +31,28 @@ const signup = (req, res) => {
     })
 }
 
-const signupPage = (_, res) => {
-    const file = fs.createReadStream('./signup.html');
+const loginPage = (_, res) => {
+    const file = fs.createReadStream('./login.html');
     res.writeHead(200, { 'Content-Type': 'text/html' });
     file.pipe(res);
 }
+
+const login = (req, res) => {
+    let data = ''
+    req.on('data', (chunk) => {
+        data += chunk.toString()
+    })
+
+    req.on('end', () => {
+        let formData = JSON.parse(data)
+        console.log(formData)
+
+        res.writeHead(200, { 'Content-Type': 'application/json' })
+        res.end(JSON.stringify({ data: 'Hello World!' }))
+    })
+}
+
+
 
 const routes = {
     '/api/hello': {
@@ -43,6 +63,12 @@ const routes = {
     },
     '/signup': {
         'GET': signupPage
+    },
+    '/api/login': {
+        'POST': login
+    },
+    '/login': {
+        'GET': loginPage
     }
 }
 
