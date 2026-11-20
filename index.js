@@ -1,3 +1,4 @@
+const fs = require('node:fs')
 const http = require('node:http')
 const querystring = require('node:querystring')
 
@@ -27,12 +28,21 @@ const signup = (req, res) => {
     })
 }
 
+const signupPage = (_, res) => {
+    const file = fs.createReadStream('./signup.html');
+    res.writeHead(200, { 'Content-Type': 'text/html' });
+    file.pipe(res);
+}
+
 const routes = {
     '/api/hello': {
         'GET': hello
     },
     '/api/signup': {
         'POST': signup
+    },
+    '/signup': {
+        'GET': signupPage
     }
 }
 
