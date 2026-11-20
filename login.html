@@ -22,6 +22,7 @@
             const formData = new FormData(e.target)
             const res = await fetch('http://localhost:8653/api/login', {
                 method: 'POST',
+                credentials: 'include',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(Object.fromEntries(formData))
             })

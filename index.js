@@ -21,7 +21,7 @@ const parseCookies = (request) => {
     const cookieHeader = request.headers?.cookie
     if (!cookieHeader) return list
 
-    cookieHeader.split('').forEach(function(cookie) {
+    cookieHeader.split(';').forEach(function(cookie) {
         let [ name, ...rest] = cookie.split('=')
         name = name?.trim()
 
@@ -29,7 +29,7 @@ const parseCookies = (request) => {
         const value = rest.join('=').trim()
 
         if (!value) return
-        list[name] = decodeURIComponent(value)
+        list[name] = value
     })
 
     return list
@@ -106,7 +106,7 @@ const signup = (req, res) => {
 
         res.writeHead(201, {
             'Content-Type': 'application/json',
-            'Set-Cookie': `sessionId=${sessionId}`,
+            'Set-Cookie': `sessionId=${sessionId}; Path=/; SameSite=Lax`,
         })
         res.end(JSON.stringify({ ok: 'New user created' }))
     })
@@ -161,7 +161,7 @@ const login = (req, res) => {
 
         res.writeHead(201, {
             'Content-Type': 'application/json',
-            'Set-Cookie': `sessionId=${sessionId}`,
+            'Set-Cookie': `sessionId=${sessionId}; Path=/; SameSite=Lax`,
         })
         res.end(JSON.stringify({ ok: 'New session created' }))
     })
@@ -200,6 +200,9 @@ server.on('request', (req, res) => {
         return
     }
 
+    res.setHeader('Access-Control-Allow-Origin', 'http://localhost:8653');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
     routes[url.pathname][req.method](req, res)
 })
 
