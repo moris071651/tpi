@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard</title>
+</head>
+<body>
+    <p id="hello-text"></p>
+    <a href="http://localhost:8653/passchange">Change password</a>
+    <a href="http://localhost:8653/namechange">Change username</a>
+    <script>
+        const res = fetch('http://localhost:8653/api/dashboard', {
+            method: 'GET',
+            credentials: 'include'
+        })
+        .then(async (res) => {
+            const data = await res.json().catch(() => ({}))
+
+            if (!res.ok || data.error) {
+                throw new Error(data.error || `status(${res.status})`)
+            }
+
+            return await data
+        })
+        .then((data) => {
+            const el = document.querySelector('#hello-text');
+            el.textContent = `Hello, ${data.username} (${data.email})`;
+        })
+        .catch((reason) => {
+            alert(`Something went wrong: ${reason.message}`);
+        })
+    </script>
+</body>
+</html>

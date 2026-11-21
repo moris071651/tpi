@@ -3,13 +3,21 @@ const crypto = require('node:crypto')
 
 const utils = require('./utils.js')
 
-const loginPage = (_req, res, _db, _ss) => {
+const page = (req, res, _db, ss) => {
+    const cookies = utils.parseCookies(req)
+    
+    if (Object.hasOwn(ss, cookies.sessionId)) {
+        res.writeHead(302, { Location: 'http://localhost:8653/dashboard' })
+        res.end()
+        return
+    }
+    
     const file = fs.createReadStream('./login.html')
     res.writeHead(200, { 'Content-Type': 'text/html' })
     file.pipe(res)
 }
 
-const login = (req, res, db, ss) => {
+const api = (req, res, db, ss) => {
     let body = ''
     req.on('data', (chunk) => {
         body += chunk.toString()
@@ -58,4 +66,4 @@ const login = (req, res, db, ss) => {
     })
 }
 
-module.exports = { loginPage, login }
+module.exports = { page, api }

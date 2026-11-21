@@ -4,6 +4,7 @@ const { Database } = require('node:sqlite')
 const utils = require('./utils.js')
 const signup = require('./signup.js')
 const login = require('./login.js')
+const dashboard = require('./dashboard.js')
 
 const db = new Database('app.db')
 db.exec(`
@@ -20,16 +21,22 @@ const server = http.createServer()
 
 const routes = {
     '/api/signup': {
-        'POST': signup.signup
+        'POST': signup.api
     },
     '/signup': {
-        'GET': signup.signupPage
+        'GET': signup.page
     },
     '/api/login': {
-        'POST': login.login
+        'POST': login.api
     },
     '/login': {
-        'GET': login.loginPage
+        'GET': login.page
+    },
+    '/dashboard': {
+        'GET': dashboard.page
+    },
+    '/api/dashboard': {
+        'GET': dashboard.api
     }
 }
 
@@ -46,9 +53,10 @@ server.on('request', (req, res) => {
         return
     }
 
-    res.setHeader('Access-Control-Allow-Origin', 'http://localhost:8653');
-    res.setHeader('Access-Control-Allow-Credentials', 'true');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    res.setHeader('Access-Control-Allow-Origin', 'http://localhost:8653')
+    res.setHeader('Access-Control-Allow-Credentials', 'true')
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
+
     routes[url.pathname][req.method](req, res, db, ss)
 })
 
