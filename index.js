@@ -37,6 +37,15 @@ const routes = {
     },
     '/api/dashboard': {
         'GET': dashboard.api
+    },
+    '/api/passchange': {
+        'GET': dashboard.passchangeApi
+    },
+    '/api/namechange': {
+        'GET': dashboard.namechangeApi
+    },
+    '/api/logout': {
+        'GET': dashboard.logoutApi
     }
 }
 
