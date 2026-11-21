@@ -4,11 +4,8 @@ const crypto = require('node:crypto')
 const utils = require('./utils.js')
 
 const page = (req, res, _db, ss) => {
-    const cookies = utils.parseCookies(req)
-    
-    if (Object.hasOwn(ss, cookies.sessionId)) {
-        res.writeHead(302, { Location: 'http://localhost:8653/dashboard' })
-        res.end()
+    if (utils.isUserLoggedIn(req, ss)) {
+        utils.redirectTo('http://localhost:8653/dashboard')
         return
     }
     
@@ -24,19 +21,17 @@ const api = (req, res, db, ss) => {
     })
 
     req.on('end', () => {
-        const cookies = utils.parseCookies(req)
-
-        if (Object.hasOwn(session, cookies.sessionId)) {
-            utils.errorReturner(res, 400, 'You are already logged in')
+        if (utils.isUserLoggedIn(req, ss)) {
+            utils.youAreLoggedInReturner(res)
             return
         }
 
-        let formData = JSON.parse(body)
+        let data = JSON.parse(body)
 
         const query = db.prepare(`
             SELECT * FROM users
             WHERE email = :email
-        `).all({ ':email': formData.email })
+        `).all({ ':email': data.email })
 
         if (Object.keys(query).length !== 0) {
             utils.errorReturner(res, 400, 'This email is already used')
@@ -44,7 +39,7 @@ const api = (req, res, db, ss) => {
         }
 
         const hash = crypto.createHash('sha256')
-        hash.update(formData.password)
+        hash.update(data.password)
         const passhash = hash.digest('hex')
 
         let userId = crypto.randomUUID().toString()
@@ -55,8 +50,8 @@ const api = (req, res, db, ss) => {
 
         insert.run({
             ':userId': userId,
-            ':username': formData.username,
-            ':email': formData.email,
+            ':username': data.username,
+            ':email': data.email,
             ':passhash': passhash
         })
 

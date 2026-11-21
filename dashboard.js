@@ -4,11 +4,8 @@ const crypto = require('node:crypto')
 const utils = require('./utils.js')
 
 const page = (req, res, _db, ss) => {
-    const cookies = utils.parseCookies(req)
-    
-    if (!Object.hasOwn(ss, cookies.sessionId)) {
-        res.writeHead(302, { Location: 'http://localhost:8653/login' })
-        res.end()
+    if (!utils.isUserLoggedIn(req, ss)) {
+        utils.redirectTo(res, 'http://localhost:8653/login')
         return
     }
 
@@ -20,11 +17,11 @@ const page = (req, res, _db, ss) => {
 const api = (req, res, db, ss) => {
     const cookies = utils.parseCookies(req)
     
-    if (!Object.hasOwn(ss, cookies.sessionId)) {
-        utils.errorReturner(res, 400, 'You are not logged in')
+    if (!utils.isUserLoggedIn(req, ss)) {
+        utils.youAreNotLoggedInReturner(res)
         return
     }
-    
+
     const query = db.prepare(`
         SELECT username, email FROM users
         WHERE user_id = :userId
@@ -44,8 +41,8 @@ const namechangeApi = (req, res, db, ss) => {
     req.on('end', () => {
         const cookies = utils.parseCookies(req)
         
-        if (!Object.hasOwn(ss, cookies.sessionId)) {
-            utils.errorReturner(res, 400, 'You are not logged in')
+        if (!utils.isUserLoggedIn(req, ss)) {
+            utils.youAreNotLoggedInReturner(res)
             return
         }
 
@@ -75,8 +72,8 @@ const passchangeApi = (req, res, db, ss) => {
     req.on('end', () => {
         const cookies = utils.parseCookies(req)
         
-        if (!Object.hasOwn(ss, cookies.sessionId)) {
-            utils.errorReturner(res, 400, 'You are not logged in')
+        if (!utils.isUserLoggedIn(req, ss)) {
+            utils.youAreNotLoggedInReturner(res)
             return
         }
 
@@ -122,8 +119,8 @@ const passchangeApi = (req, res, db, ss) => {
 const logoutApi = (req, res, db, ss) => {
     const cookies = utils.parseCookies(req)
     
-    if (!Object.hasOwn(ss, cookies.sessionId)) {
-        utils.errorReturner(res, 400, 'You are not logged in')
+    if (!utils.isUserLoggedIn(req, ss)) {
+        utils.youAreNotLoggedInReturner(res)
         return
     }
 
@@ -133,7 +130,10 @@ const logoutApi = (req, res, db, ss) => {
         'Content-Type': 'application/json',
         'Set-Cookie': 'sessionId=; Path=/; Max-Age=0; SameSite=Lax',
     })
-    res.end(JSON.stringify({ok: 'You are logged out'}))
+    res.end(JSON.stringify({
+        ok: 'You are logged out',
+        'redirectURL': 'http://localhost:8653/dashboard'
+    }))
 }
 
 module.exports = { page, api, passchangeApi, namechangeApi, logoutApi }

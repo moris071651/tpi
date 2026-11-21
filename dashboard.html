@@ -62,7 +62,13 @@
                 window.location.reload()
             }
             else {
-                alert((await res.json()).error)
+                const data = await res.json()
+                if (res.status == 401) {
+                    location.href = data.redirectURL
+                }
+                else {
+                    alert(data.error)
+                }
             }
         })
 
@@ -89,7 +95,13 @@
                 alert('Success')
             }
             else {
-                alert((await res.json()).error)
+                const data = await res.json()
+                if (res.status == 401) {
+                    location.href = data.redirectURL
+                }
+                else {
+                    alert(data.error)
+                }
             }
         })
 
@@ -101,12 +113,14 @@
             .then(async (res) => {
                 const data = await res.json().catch(() => ({}))
 
-                if (!res.ok || data.error) {
+                if ((!res.ok || data.error) && res.status !== 401) {
                     throw new Error(data.error || `status(${res.status})`)
                 }
+
+                return data.redirectURL
             })
-            .then(() => {
-                location.href = 'http://localhost:8653/login'
+            .then((redirectURL) => {
+                location.href = redirectURL
             })
             .catch((reason) => {
                 alert(`Something went wrong: ${reason.message}`);

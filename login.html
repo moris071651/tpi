@@ -31,7 +31,13 @@
                 location.href = 'http://localhost:8653/dashboard'
             }
             else {
-                alert((await res.json()).error)
+                const data = await res.json()
+                if (res.status == 409) {
+                    location.href = data.redirectURL
+                }
+                else {
+                    alert(data.error)
+                }
             }
         })
     </script>

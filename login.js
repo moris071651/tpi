@@ -4,11 +4,8 @@ const crypto = require('node:crypto')
 const utils = require('./utils.js')
 
 const page = (req, res, _db, ss) => {
-    const cookies = utils.parseCookies(req)
-    
-    if (Object.hasOwn(ss, cookies.sessionId)) {
-        res.writeHead(302, { Location: 'http://localhost:8653/dashboard' })
-        res.end()
+    if (utils.isUserLoggedIn(req, ss)) {
+        utils.redirectTo('http://localhost:8653/dashboard')
         return
     }
     
@@ -24,24 +21,22 @@ const api = (req, res, db, ss) => {
     })
 
     req.on('end', () => {
-        const cookies = utils.parseCookies(req)
-
-        if (Object.hasOwn(ss, cookies.sessionId)) {
-            utils.errorReturner(res, 400, 'You are already logged in')
+        if (utils.isUserLoggedIn(req, ss)) {
+            utils.youAreLoggedInReturner(res)
             return
         }
 
-        let formData = JSON.parse(body)
+        let data = JSON.parse(body)
 
         const hash = crypto.createHash('sha256')
-        hash.update(formData.password)
+        hash.update(data.password)
         const passhash = hash.digest('hex')
 
         const query = db.prepare(`
             SELECT user_id as userId, email, passhash FROM users
             WHERE email = :email
         `)
-        const user = query.get({ ':email': formData.email })
+        const user = query.get({ ':email': data.email })
 
         if (!user) {
             utils.errorReturner(res, 400, 'Wrong email or password')
