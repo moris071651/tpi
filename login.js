@@ -21,6 +21,12 @@ const api = (req, res, db, ss) => {
     })
 
     req.on('end', () => {
+        const cookies = utils.parseCookies(req)
+        if (!Object.hasOwn(ss, cookies.sessionId)) {
+            utils.errorReturner(res, 400, 'generate captcha first')
+            return
+        }
+
         if (utils.isUserLoggedIn(req, ss)) {
             utils.youAreLoggedInReturner(res)
             return
@@ -28,6 +34,11 @@ const api = (req, res, db, ss) => {
 
         let data = JSON.parse(body)
 
+        if (ss[cookies.sessionId].captchaText !== data.captcha) {
+            utils.errorReturner(res, 400, 'wrong captcha')
+            return
+        }
+        
         const hash = crypto.createHash('sha256')
         hash.update(data.password)
         const passhash = hash.digest('hex')
@@ -48,15 +59,8 @@ const api = (req, res, db, ss) => {
             return
         }
 
-        let sessionId = crypto.randomUUID().toString()
-        ss[sessionId] = {
-            userId: user.userId
-        }
-
-        res.writeHead(201, {
-            'Content-Type': 'application/json',
-            'Set-Cookie': `sessionId=${sessionId}; Path=/; SameSite=Lax`,
-        })
+        ss[cookies.sessionId].userId = userId
+        res.writeHead(201, { 'Content-Type': 'application/json' })
         res.end(JSON.stringify({ ok: 'New session created' }))
     })
 }

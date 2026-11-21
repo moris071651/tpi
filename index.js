@@ -5,6 +5,7 @@ const utils = require('./utils.js')
 const signup = require('./signup.js')
 const login = require('./login.js')
 const dashboard = require('./dashboard.js')
+const captcha = require('./captcha.js')
 
 const db = new Database('app.db')
 db.exec(`
@@ -46,6 +47,9 @@ const routes = {
     },
     '/api/logout': {
         'POST': dashboard.logoutApi
+    },
+    '/captcha.svg': {
+        'GET': captcha.image
     }
 }
 
