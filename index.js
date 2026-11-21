@@ -39,13 +39,13 @@ const routes = {
         'GET': dashboard.api
     },
     '/api/passchange': {
-        'GET': dashboard.passchangeApi
+        'PATCH': dashboard.passchangeApi
     },
     '/api/namechange': {
-        'GET': dashboard.namechangeApi
+        'PATCH': dashboard.namechangeApi
     },
     '/api/logout': {
-        'GET': dashboard.logoutApi
+        'POST': dashboard.logoutApi
     }
 }
 

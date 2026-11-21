@@ -1,4 +1,5 @@
 const fs = require('node:fs')
+const crypto = require('node:crypto')
 
 const utils = require('./utils.js')
 
@@ -61,7 +62,7 @@ const namechangeApi = (req, res, db, ss) => {
         })
 
         res.writeHead(200, { 'Content-Type': 'application/json' })
-        res.end(JSON.parse({ok: 'username changed'}))
+        res.end(JSON.stringify({ok: 'username changed'}))
     })
 }
 
@@ -114,7 +115,7 @@ const passchangeApi = (req, res, db, ss) => {
         })
 
         res.writeHead(200, { 'Content-Type': 'application/json' })
-        res.end(JSON.parse({ok: 'password changed'}))
+        res.end(JSON.stringify({ok: 'password changed'}))
     })
 }
 
