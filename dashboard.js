@@ -116,7 +116,7 @@ const passchangeApi = (req, res, db, ss) => {
     })
 }
 
-const logoutApi = (req, res, db, ss) => {
+const logoutApi = (req, res, _db, ss) => {
     const cookies = utils.parseCookies(req)
     
     if (!utils.isUserLoggedIn(req, ss)) {
@@ -132,7 +132,7 @@ const logoutApi = (req, res, db, ss) => {
     })
     res.end(JSON.stringify({
         ok: 'You are logged out',
-        'redirectURL': 'http://localhost:8653/dashboard'
+        redirectURL: 'http://localhost:8653/dashboard'
     }))
 }
 
