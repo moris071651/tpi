@@ -4,8 +4,8 @@ const sinon = require('sinon')
 const utils = require('../utils.js')
 const assert = require('node:assert')
 
-describe('signup', () => {
-    let req, res, db, ss
+describe('utils', () => {
+    let req, res, ss
 
     beforeEach(() => {
         req = { headers: {} }
