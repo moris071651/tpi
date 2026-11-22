@@ -5,7 +5,7 @@ const utils = require('./utils.js')
 
 const page = (req, res, _db, ss) => {
     if (utils.isUserLoggedIn(req, ss)) {
-        utils.redirectTo('http://localhost:8653/dashboard')
+        utils.redirectTo(res, 'http://localhost:8653/dashboard')
         return
     }
     

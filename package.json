@@ -5,10 +5,15 @@
   "type": "commonjs",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "nyc mocha"
   },
   "license": "MIT",
   "dependencies": {
     "svg-captcha": "^1.4.0"
+  },
+  "devDependencies": {
+    "mocha": "^12.0.3",
+    "nyc": "^18.0.0",
+    "sinon": "^22.1.0"
   }
 }
