@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign up</title>
+</head>
+<body>
+    <a href="http://localhost:8653/login">To login page</a>
+    <br>
+    <form id="signupform">
+        <input type="text" name="username" placeholder="Username" required>
+        <input type="email" name="email" placeholder="Email" required>
+        <input type="password" name="password" placeholder="Password" required>
+        <input type="text" name="captcha" placeholder="Captcha" required>
+        <button type="submit">Sign Up</button>
+    </form>
+    <img id="captcha-image" src="http://localhost:8653/captcha.svg" alt="captcha">
+    <script>
+        document
+            .querySelector('#signupform')
+            .addEventListener('submit', async (e) => {
+            e.preventDefault()
+
+            const formData = new FormData(e.target)
+            const res = await fetch('http://localhost:8653/api/signup', {
+                method: 'POST',
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(Object.fromEntries(formData))
+            })
+            
+            if (res.ok) {
+                location.href = 'http://localhost:8653/dashboard'
+            }
+            else {
+                const data = await res.json()
+                if (res.status == 409) {
+                    location.href = data.redirectURL
+                }
+                else {
+                    alert(data.error)
+                }
+            }
+        })
+    </script>
+</body>
+</html>

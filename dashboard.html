@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard</title>
+</head>
+<body>
+    <p id="hello-text"></p>
+    <br>
+    <label for="namechange-form">Change Usermane</label>
+    <form id="namechange-form">
+        <input type="text" name="username" placeholder="Username" required>
+        <button type="submit">Change</button>
+    </form>
+    <br>
+    <label for="passchange-form">Change Password</label>
+    <form id="passchange-form">
+        <input type="password" name="oldpass" placeholder="Old Password" required>
+        <input type="password" name="newpass" placeholder="New Password" required>
+        <input type="password" name="newpass1" placeholder="Retype New Password" required>
+        <button type="submit">Change</button>
+    </form>
+    <br>
+    <button onclick="onLogoutClick()">Logout</button>
+    <script>
+        fetch('http://localhost:8653/api/dashboard', {
+            method: 'GET',
+            credentials: 'include'
+        })
+        .then(async (res) => {
+            const data = await res.json().catch(() => ({}))
+
+            if (!res.ok || data.error) {
+                throw new Error(data.error || `status(${res.status})`)
+            }
+
+            return data
+        })
+        .then((data) => {
+            const el = document.querySelector('#hello-text');
+            el.textContent = `Hello, ${data.username} (${data.email})`;
+        })
+        .catch((reason) => {
+            alert(`Something went wrong: ${reason.message}`);
+        })
+
+        document.querySelector('#namechange-form')
+            .addEventListener('submit', async (e) => {
+            e.preventDefault()
+
+            const formData = new FormData(e.target)
+            const res = await fetch('http://localhost:8653/api/namechange', {
+                method: 'PATCH',
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(Object.fromEntries(formData))
+            })
+            
+            if (res.ok) {
+                e.target.reset()
+                window.location.reload()
+            }
+            else {
+                const data = await res.json()
+                if (res.status == 401) {
+                    location.href = data.redirectURL
+                }
+                else {
+                    alert(data.error)
+                }
+            }
+        })
+
+        document.querySelector('#passchange-form')
+            .addEventListener('submit', async (e) => {
+            e.preventDefault()
+
+            const formData = Object.fromEntries(new FormData(e.target))
+            if (formData.newpass !== formData.newpass1) {
+                alert('passwords do not match')
+                return
+            }
+
+            delete formData.newpass1
+            const res = await fetch('http://localhost:8653/api/passchange', {
+                method: 'PATCH',
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(formData)
+            })
+            
+            if (res.ok) {
+                e.target.reset()
+                alert('Success')
+            }
+            else {
+                const data = await res.json()
+                if (res.status == 401) {
+                    location.href = data.redirectURL
+                }
+                else {
+                    alert(data.error)
+                }
+            }
+        })
+
+        function onLogoutClick() {
+            fetch('http://localhost:8653/api/logout', {
+                method: 'POST',
+                credentials: 'include'
+            })
+            .then(async (res) => {
+                const data = await res.json().catch(() => ({}))
+
+                if ((!res.ok || data.error) && res.status !== 401) {
+                    throw new Error(data.error || `status(${res.status})`)
+                }
+
+                return data.redirectURL
+            })
+            .then((redirectURL) => {
+                location.href = redirectURL
+            })
+            .catch((reason) => {
+                alert(`Something went wrong: ${reason.message}`);
+            })
+        }
+    </script>
+</body>
+</html>
