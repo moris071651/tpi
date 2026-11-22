@@ -39,12 +39,8 @@ const api = (req, res, db, ss) => {
             return
         }
         
-        const hash = crypto.createHash('sha256')
-        hash.update(data.password)
-        const passhash = hash.digest('hex')
-
         const query = db.prepare(`
-            SELECT user_id as userId, email, passhash FROM users
+            SELECT user_id as id, passhash FROM users
             WHERE email = :email
         `)
         const user = query.get({ ':email': data.email })
@@ -54,12 +50,16 @@ const api = (req, res, db, ss) => {
             return
         }
 
+        const hash = crypto.createHash('sha256')
+        hash.update(data.password)
+        const passhash = hash.digest('hex')
+
         if (user.passhash !== passhash) {
             utils.errorReturner(res, 400, 'Wrong email or password')
             return
         }
 
-        ss[cookies.sessionId].userId = userId
+        ss[cookies.sessionId].userId = user.id
         res.writeHead(201, { 'Content-Type': 'application/json' })
         res.end(JSON.stringify({ ok: 'New session created' }))
     })

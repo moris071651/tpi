@@ -42,9 +42,10 @@ const api = (req, res, db, ss) => {
         const query = db.prepare(`
             SELECT * FROM users
             WHERE email = :email
-        `).all({ ':email': data.email })
+        `)
+        let user = query.get({ ':email': data.email })
 
-        if (Object.keys(query).length !== 0) {
+        if (user) {
             utils.errorReturner(res, 400, 'This email is already used')
             return
         }

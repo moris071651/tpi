@@ -100,8 +100,8 @@ describe('signup', () => {
         })
 
         it('', () => {
-            let func = sinon.stub().returns([1, 2])
-            db.prepare.returns({ all: func })
+            let func = sinon.stub().returns({})
+            db.prepare.returns({ get: func })
 
             signup.api(req, res, db, ss)
             helpEmitter({ captcha: 'AAAA', email: 'fake' })
@@ -115,8 +115,8 @@ describe('signup', () => {
             let userId = '394ee0f4-a435-42a1-af52-33c50147cea2'
 
             let func1 = sinon.spy()
-            let func2 = sinon.stub().returns([])
-            db.prepare.returns({ all: func2, run: func1 })
+            let func2 = sinon.stub().returns(undefined)
+            db.prepare.returns({ get: func2, run: func1 })
 
             sinon.stub(crypto, 'randomUUID').returns(userId)
 
