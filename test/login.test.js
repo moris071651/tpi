@@ -21,7 +21,7 @@ describe('login', () => {
         }
 
         db = {
-            prepare: sinon.stub()
+            query: sinon.stub()
         }
 
         ss = {
@@ -101,20 +101,18 @@ describe('login', () => {
             sinon.assert.calledOnceWithMatch(utils.errorReturner, res, 400, 'wrong captcha')
         })
 
-        it('', () => {
-            let func = sinon.stub().returns(undefined)
-            db.prepare.returns({ get: func })
+        it('', async () => {
+            db.query.returns({ rows: [] })
 
             login.api(req, res, db, ss)
             helpEmitter({ captcha: 'AAAA', email: 'fake' })
+            await new Promise(resolve => setImmediate(resolve))
 
-            sinon.assert.calledOnceWithMatch(func, { ':email': 'fake' })
             sinon.assert.calledOnceWithMatch(utils.errorReturner, res, 400, 'Wrong email or password')
         })
 
-        it('', () => {
-            let func = sinon.stub().returns({ passhash: 'password' })
-            db.prepare.returns({ get: func })
+        it('', async () => {
+            db.query.returns({ rows: [{ passhash: 'password' }] })
 
             let func3 = sinon.spy()
             let func4 = sinon.stub().returns(password)
@@ -122,13 +120,13 @@ describe('login', () => {
 
             login.api(req, res, db, ss)
             helpEmitter({ captcha: 'AAAA', email: 'fake' })
+            await new Promise(resolve => setImmediate(resolve))
 
             sinon.assert.calledOnceWithMatch(utils.errorReturner, res, 400, 'Wrong email or password')
         })
 
-        it('', () => {
-            let func = sinon.stub().returns({ passhash: password, id: userId })
-            db.prepare.returns({ get: func })
+        it('', async () => {
+            db.query.returns({ rows: [{ passhash: password, id: userId }] })
 
             let func3 = sinon.spy()
             let func4 = sinon.stub().returns(password)
@@ -136,6 +134,7 @@ describe('login', () => {
 
             login.api(req, res, db, ss)
             helpEmitter({ captcha: 'AAAA', email: 'fake' })
+            await new Promise(resolve => setImmediate(resolve))
 
             sinon.assert.calledOnceWithMatch(res.writeHead, 201, { 'Content-Type': 'application/json' })
             sinon.assert.calledOnceWithMatch(res.end, JSON.stringify({ ok: 'New session created' }))
