@@ -1,5 +1,5 @@
 const http = require('node:http')
-const { Database } = require('node:sqlite')
+const pg = require('pg')
 
 const utils = require('./utils.js')
 const signup = require('./signup.js')
@@ -7,17 +7,22 @@ const login = require('./login.js')
 const dashboard = require('./dashboard.js')
 const captcha = require('./captcha.js')
 
-const db = new Database('app.db')
-db.exec(`
-    CREATE TABLE IF NOT EXISTS users(
-        user_id TEXT PRIMARY KEY,
-        username TEXT,
-        email TEXT UNIQUE,
-        passhash TEXT
-    ) STRICT
-`)
+const setup_db = async () => {
+    const db = await new pg.Client().connect()
+    await db.query(`
+        CREATE TABLE IF NOT EXISTS users(
+            user_id UUID PRIMARY KEY,
+            username TEXT,
+            email TEXT UNIQUE,
+            passhash TEXT
+        )
+    `)
+
+    return db
+}
 
 const ss = {}
+let db = undefined
 const server = http.createServer()
 
 const routes = {
@@ -77,4 +82,7 @@ server.on('error', (e) => {
   console.error(`Got error: ${e.message}`)
 })
 
-server.listen(8653)
+setup_db().then((db1) => {
+    db = db1
+    server.listen(8653)
+})
