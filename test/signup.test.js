@@ -60,52 +60,51 @@ describe('signup', () => {
     })
 
     describe('api()', () => {
-        const helpEmitter = (data) => {
+        const helpEmitter = async (data) => {
             req.emit('data', JSON.stringify(data))
             req.emit('end')
+            await new Promise(resolve => setImmediate(resolve))
         }
 
-        it('', () => {
+        it('', async () => {
             utils.parseCookies.returns({ sessionId: 'not-valid-session' })
 
             signup.api(req, res, db, ss)
-            helpEmitter({})
+            await helpEmitter({})
 
             sinon.assert.calledOnceWithMatch(utils.errorReturner, res, 400, 'generate captcha first')
         })
 
-        it('', () => {
+        it('', async () => {
             utils.parseCookies.returns({ notSessionId: 'valid-session' })
 
             signup.api(req, res, db, ss)
-            helpEmitter({})
+            await helpEmitter({})
 
             sinon.assert.calledOnceWithMatch(utils.errorReturner, res, 400, 'generate captcha first')
         })
 
-        it('', () => {
+        it('', async () => {
             utils.isUserLoggedIn.returns(true)
 
             signup.api(req, res, db, ss)
-            helpEmitter({})
+            await helpEmitter({})
 
             sinon.assert.calledOnceWithMatch(utils.youAreLoggedInReturner, res)
         })
 
-        it('', () => {
+        it('', async () => {
             signup.api(req, res, db, ss)
-            helpEmitter({ captcha: 'BBBB' })
+            await helpEmitter({ captcha: 'BBBB' })
 
             sinon.assert.calledOnceWithMatch(utils.errorReturner, res, 400, 'wrong captcha')
         })
 
         it('', async () => {
-            db.query.returns({ rows: [{}] })
+            db.query.resolves({ rows: [{}] })
 
             signup.api(req, res, db, ss)
-            helpEmitter({ captcha: 'AAAA', email: 'fake' })
-
-            await new Promise(resolve => setImmediate(resolve))
+            await helpEmitter({ captcha: 'AAAA', email: 'fake' })
 
             sinon.assert.calledOnceWithMatch(utils.errorReturner, res, 400, 'This email is already used')
         })
@@ -115,22 +114,20 @@ describe('signup', () => {
             let userId = '394ee0f4-a435-42a1-af52-33c50147cea2'
 
             db.query
-                .onFirstCall().returns({ rows: [] })
-                .onSecondCall().returns({ rows: [{ user_id: userId }] })
+                .onFirstCall().resolves({ rows: [] })
+                .onSecondCall().resolves({ rows: [{ user_id: userId }] })
 
             let func1 = sinon.spy()
             let func2 = sinon.stub().returns(password)
             sinon.stub(crypto, 'createHash').returns({ update: func1, digest: func2 })
 
             signup.api(req, res, db, ss)
-            helpEmitter({
+            await helpEmitter({
                 captcha: 'AAAA',
                 email: 'fake',
                 password: password,
                 username: 'hello'
             })
-
-            await new Promise(resolve => setImmediate(resolve))
 
             sinon.assert.calledOnceWithMatch(res.writeHead, 201, { 'Content-Type': 'application/json' })
             sinon.assert.calledOnceWithMatch(res.end, JSON.stringify({ ok: 'New user created' }))

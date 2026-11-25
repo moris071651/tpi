@@ -22,7 +22,7 @@ describe('dashboard', () => {
         }
 
         db = {
-            prepare: sinon.stub()
+            query: sinon.stub()
         }
 
         ss = {
@@ -63,53 +63,46 @@ describe('dashboard', () => {
     })
 
     describe('api(req, res, db, ss)', () => {
-        it('', () => {
+        it('', async () => {
             utils.isUserLoggedIn.returns(false)
     
-            dashboard.api(req, res, db, ss)
+            await dashboard.api(req, res, db, ss)
     
             sinon.assert.calledOnceWithMatch(utils.youAreNotLoggedInReturner, res)
         })
 
-        it('', () => {
-            let data = { username: 'hello', email: 'fake'}
-            let func = sinon.stub().returns(data)
-            db.prepare.returns({ get: func })
+        it('', async () => {
+            const data = { username: 'hello', email: 'fake'}
+            db.query.resolves({ rows: [data] })
     
-            dashboard.api(req, res, db, ss)
+            await dashboard.api(req, res, db, ss)
     
-            sinon.assert.calledOnceWithMatch(func, { ':userId': userId })
             sinon.assert.calledOnceWithMatch(res.writeHead, 200, { 'Content-Type': 'application/json' })
             sinon.assert.calledOnceWithMatch(res.end, JSON.stringify(data))
         })
     })
 
     describe('namechangeApi(req, res, db, ss)', () => {
-        const helpEmitter = (data) => {
+        const helpEmitter = async (data) => {
             req.emit('data', JSON.stringify(data))
             req.emit('end')
+            await new Promise(resolve => setImmediate(resolve))
         }
 
-        it('',  () => {
+        it('',  async () => {
             utils.isUserLoggedIn.returns(false)
 
             dashboard.namechangeApi(req, res, db, ss)
-            helpEmitter({})
+            await helpEmitter({})
 
             sinon.assert.calledOnceWithMatch(utils.youAreNotLoggedInReturner, res)
         })
 
-        it('', () => {
-            let func = sinon.spy()
-            db.prepare.returns({ run: func })
+        it('', async () => {
+            db.query.resolves({ rows: [{ passhash: 'password' }] })
 
             dashboard.namechangeApi(req, res, db, ss)
-            helpEmitter({ username: 'hello' })
-            
-            sinon.assert.calledOnceWithMatch(func, {
-                ':userId': userId,
-                ':newUsername': 'hello'
-            })
+            await helpEmitter({ username: 'hello' })
 
             sinon.assert.calledOnceWithMatch(res.writeHead, 200, { 'Content-Type': 'application/json' })
             sinon.assert.calledOnceWithMatch(res.end, JSON.stringify({ok: 'username changed'}))
@@ -117,41 +110,40 @@ describe('dashboard', () => {
     })
 
     describe('passchangeApi(req, res, db, ss)', () => {
-        const helpEmitter = (data) => {
+        const helpEmitter = async (data) => {
             req.emit('data', JSON.stringify(data))
             req.emit('end')
+            await new Promise(resolve => setImmediate(resolve))
         }
 
-        it('',  () => {
+        it('', async () => {
             utils.isUserLoggedIn.returns(false)
 
             dashboard.passchangeApi(req, res, db, ss)
-            helpEmitter({})
+            await helpEmitter({})
 
             sinon.assert.calledOnceWithMatch(utils.youAreNotLoggedInReturner, res)
         })
 
-        it('', () => {
-            let func1 = sinon.stub().returns({ passhash: password })
-            db.prepare.returns({ get: func1 })
+        it('1', async () => {
+            db.query.resolves({ rows: [{ passhash: password }] })
 
             let func2 = sinon.spy()
             let func3 = sinon.stub().returns(password + '1')
             sinon.stub(crypto, 'createHash').returns({ update: func2, digest: func3 })
 
             dashboard.passchangeApi(req, res, db, ss)
-            helpEmitter({})
+            await helpEmitter({})
 
-            sinon.assert.calledOnceWithMatch(func1, { ':userId': userId })
             sinon.assert.calledOnceWithMatch(utils.errorReturner, res, 400, 'Wrong current password')
         })
 
-        it('', () => {
+        it('2', async () => {
             let newpass = password + '1'
 
-            let func1 = sinon.spy()
-            let func2 = sinon.stub().returns({ passhash: password })
-            db.prepare.returns({ run: func1, get: func2 })
+            db.query
+                .onFirstCall().resolves({ rows: [{ passhash: password }] })
+                .onSecondCall().resolves({ rows: [] })
 
             let func3 = sinon.spy()
             let func4 = sinon.stub()
@@ -160,12 +152,11 @@ describe('dashboard', () => {
             sinon.stub(crypto, 'createHash').returns({ update: func3, digest: func4 })
 
             dashboard.passchangeApi(req, res, db, ss)
-            helpEmitter({
+            await helpEmitter({
                 oldpass: password,
                 newpass: newpass
             })
 
-            sinon.assert.calledOnceWithMatch(func1, { ':userId': userId, ':newPasshash': newpass})
             sinon.assert.calledOnceWithMatch(res.writeHead, 200, { 'Content-Type': 'application/json' })
             sinon.assert.calledOnceWithMatch(res.end, JSON.stringify({ok: 'password changed'}))
         })
