@@ -14,7 +14,7 @@ const page = (req, res, _db, ss) => {
     file.pipe(res)
 }
 
-const api = (req, res, db, ss) => {
+const api = async (req, res, db, ss) => {
     const cookies = utils.parseCookies(req)
     
     if (!utils.isUserLoggedIn(req, ss)) {
@@ -22,11 +22,10 @@ const api = (req, res, db, ss) => {
         return
     }
 
-    const query = db.prepare(`
-        SELECT username, email FROM users
-        WHERE user_id = :userId
-    `)
-    const user = query.get({ ':userId':  ss[cookies.sessionId].userId })
+    const user = (await db.query(
+        `SELECT username, email FROM users WHERE user_id = $1`,
+        [ss[cookies.sessionId].userId]
+    )).rows[0]
 
     res.writeHead(200, { 'Content-Type': 'application/json' })
     res.end(JSON.stringify(user))
@@ -38,7 +37,7 @@ const namechangeApi = (req, res, db, ss) => {
         body += chunk.toString()
     })
 
-    req.on('end', () => {
+    req.on('end', async () => {
         const cookies = utils.parseCookies(req)
         
         if (!utils.isUserLoggedIn(req, ss)) {
@@ -46,17 +45,14 @@ const namechangeApi = (req, res, db, ss) => {
             return
         }
 
-        const query = db.prepare(`
-            UPDATE users
-            SET username = :newUsername
-            WHERE user_id = :userId
-        `)
-            
         const data = JSON.parse(body)
-        query.run({
-            ':userId': ss[cookies.sessionId].userId,
-            ':newUsername': data.username
-        })
+
+        await db.query(`
+            UPDATE users
+            SET username = $1
+            WHERE user_id = $2
+            `, [data.username, ss[cookies.sessionId].userId]
+        )
 
         res.writeHead(200, { 'Content-Type': 'application/json' })
         res.end(JSON.stringify({ok: 'username changed'}))
@@ -69,7 +65,7 @@ const passchangeApi = (req, res, db, ss) => {
         body += chunk.toString()
     })
 
-    req.on('end', () => {
+    req.on('end', async () => {
         const cookies = utils.parseCookies(req)
         
         if (!utils.isUserLoggedIn(req, ss)) {
@@ -83,13 +79,10 @@ const passchangeApi = (req, res, db, ss) => {
         hash1.update(data.oldpass)
         const oldpasshash = hash1.digest('hex')
 
-        const query1 = db.prepare(`
-            SELECT passhash FROM users
-            WHERE user_id = :userId
-        `)
-        const curpasshash = query1.get({
-            ':userId': ss[cookies.sessionId].userId
-        }).passhash
+        const curpasshash = (await db.query(
+            `SELECT passhash FROM users WHERE user_id = $1`,
+            [ss[cookies.sessionId].userId]
+        )).rows[0].passhash
 
         if (curpasshash !== oldpasshash) {
             utils.errorReturner(res, 400, 'Wrong current password')
@@ -100,16 +93,12 @@ const passchangeApi = (req, res, db, ss) => {
         hash2.update(data.newpass)
         const newpasshash = hash2.digest('hex')
         
-        const query2 = db.prepare(`
+        await db.query(`
             UPDATE users
-            SET passhash = :newPasshash
-            WHERE user_id = :userId
-        `)
-            
-        query2.run({
-            ':userId': ss[cookies.sessionId].userId,
-            ':newPasshash': newpasshash
-        })
+            SET passhash = $1
+            WHERE user_id = $2
+            `, [newpasshash, ss[cookies.sessionId].userId]
+        )
 
         res.writeHead(200, { 'Content-Type': 'application/json' })
         res.end(JSON.stringify({ok: 'password changed'}))

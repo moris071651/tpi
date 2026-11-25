@@ -58,7 +58,7 @@ const routes = {
     }
 }
 
-server.on('request', (req, res) => {
+server.on('request', async (req, res) => {
     let url = new URL(`http://${process.env.HOST ?? 'localhost'}${req.url}`)
     
     if (!routes.hasOwnProperty(url.pathname)) {
@@ -75,7 +75,7 @@ server.on('request', (req, res) => {
     res.setHeader('Access-Control-Allow-Credentials', 'true')
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
 
-    routes[url.pathname][req.method](req, res, db, ss)
+    await routes[url.pathname][req.method](req, res, db, ss)
 })
 
 server.on('error', (e) => {
