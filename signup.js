@@ -39,10 +39,10 @@ const api = (req, res, db, ss) => {
             return
         }
 
-        const user = await db.query(
+        const user = (await db.query(
             'SELECT * FROM users WHERE email = $1',
             [data.email]
-        ).rows[0]
+        )).rows[0]
 
         if (user) {
             utils.errorReturner(res, 400, 'This email is already used')
@@ -53,12 +53,12 @@ const api = (req, res, db, ss) => {
         hash.update(data.password)
         const passhash = hash.digest('hex')
 
-        const userId = await db.query(`
+        const userId = (await db.query(`
             INSERT INTO users (user_id, username, email, passhash)
             VALUES (gen_random_uuid(), $1, $2, $3)
             RETURNING user_id
             `, [data.username, data.email, passhash]
-        ).rows[0].user_id
+        )).rows[0].user_id
 
         ss[cookies.sessionId].userId = userId
         res.writeHead(201, { 'Content-Type': 'application/json' })
