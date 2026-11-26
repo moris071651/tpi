@@ -1,4 +1,5 @@
 const http = require('node:http')
+require('dotenv').config()
 const pg = require('pg')
 
 const utils = require('./utils.js')
