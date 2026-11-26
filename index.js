@@ -1,5 +1,6 @@
 const http = require('node:http')
-const { Database } = require('node:sqlite')
+require('dotenv').config()
+const pg = require('pg')
 
 const utils = require('./utils.js')
 const signup = require('./signup.js')
@@ -7,17 +8,22 @@ const login = require('./login.js')
 const dashboard = require('./dashboard.js')
 const captcha = require('./captcha.js')
 
-const db = new Database('app.db')
-db.exec(`
-    CREATE TABLE IF NOT EXISTS users(
-        user_id TEXT PRIMARY KEY,
-        username TEXT,
-        email TEXT UNIQUE,
-        passhash TEXT
-    ) STRICT
-`)
+const setup_db = async () => {
+    const db = await new pg.Client().connect()
+    await db.query(`
+        CREATE TABLE IF NOT EXISTS users(
+            user_id UUID PRIMARY KEY,
+            username TEXT,
+            email TEXT UNIQUE,
+            passhash TEXT
+        )
+    `)
+
+    return db
+}
 
 const ss = {}
+let db = undefined
 const server = http.createServer()
 
 const routes = {
@@ -53,7 +59,7 @@ const routes = {
     }
 }
 
-server.on('request', (req, res) => {
+server.on('request', async (req, res) => {
     let url = new URL(`http://${process.env.HOST ?? 'localhost'}${req.url}`)
     
     if (!routes.hasOwnProperty(url.pathname)) {
@@ -70,11 +76,14 @@ server.on('request', (req, res) => {
     res.setHeader('Access-Control-Allow-Credentials', 'true')
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
 
-    routes[url.pathname][req.method](req, res, db, ss)
+    await routes[url.pathname][req.method](req, res, db, ss)
 })
 
 server.on('error', (e) => {
   console.error(`Got error: ${e.message}`)
 })
 
-server.listen(8653)
+setup_db().then((db1) => {
+    db = db1
+    server.listen(8653)
+})

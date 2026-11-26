@@ -20,7 +20,7 @@ const api = (req, res, db, ss) => {
         body += chunk.toString()
     })
 
-    req.on('end', () => {
+    req.on('end', async () => {
         const cookies = utils.parseCookies(req)
         if (!Object.hasOwn(ss, cookies.sessionId)) {
             utils.errorReturner(res, 400, 'generate captcha first')
@@ -39,11 +39,10 @@ const api = (req, res, db, ss) => {
             return
         }
 
-        const query = db.prepare(`
-            SELECT * FROM users
-            WHERE email = :email
-        `)
-        let user = query.get({ ':email': data.email })
+        const user = (await db.query(
+            'SELECT * FROM users WHERE email = $1',
+            [data.email]
+        )).rows[0]
 
         if (user) {
             utils.errorReturner(res, 400, 'This email is already used')
@@ -54,18 +53,12 @@ const api = (req, res, db, ss) => {
         hash.update(data.password)
         const passhash = hash.digest('hex')
 
-        let userId = crypto.randomUUID().toString()
-        const insert = db.prepare(`
+        const userId = (await db.query(`
             INSERT INTO users (user_id, username, email, passhash)
-            VALUES (:userId, :username, :email, :passhash)
-        `)
-
-        insert.run({
-            ':userId': userId,
-            ':username': data.username,
-            ':email': data.email,
-            ':passhash': passhash
-        })
+            VALUES (gen_random_uuid(), $1, $2, $3)
+            RETURNING user_id
+            `, [data.username, data.email, passhash]
+        )).rows[0].user_id
 
         ss[cookies.sessionId].userId = userId
         res.writeHead(201, { 'Content-Type': 'application/json' })

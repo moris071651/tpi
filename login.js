@@ -20,7 +20,7 @@ const api = (req, res, db, ss) => {
         body += chunk.toString()
     })
 
-    req.on('end', () => {
+    req.on('end', async () => {
         const cookies = utils.parseCookies(req)
         if (!Object.hasOwn(ss, cookies.sessionId)) {
             utils.errorReturner(res, 400, 'generate captcha first')
@@ -39,11 +39,11 @@ const api = (req, res, db, ss) => {
             return
         }
         
-        const query = db.prepare(`
-            SELECT user_id as id, passhash FROM users
-            WHERE email = :email
-        `)
-        const user = query.get({ ':email': data.email })
+        const user = (await db.query(
+            `SELECT user_id as id, passhash FROM users
+            WHERE email = $1`,
+            [data.email]
+        )).rows[0]
 
         if (!user) {
             utils.errorReturner(res, 400, 'Wrong email or password')
